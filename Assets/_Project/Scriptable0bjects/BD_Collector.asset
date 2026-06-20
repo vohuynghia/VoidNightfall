@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3701c2fa3ae4e604ba7015977f35a073, type: 3}
+  m_Name: BD_Collector
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingData
+  BuildingName: Carbonium Collector
+  Description: "Thu th\u1EADp Carbonium t\u1EF1 \u0111\u1ED9ng theo th\u1EDDi gian"
+  Icon: {fileID: 0}
+  Category: 2
+  Width: 1
+  Height: 1
+  CarboniumCost: 30
+  MetalCost: 20
+  EnergyCost: 0
+  Requirement: None
+  Health: 100
+  Damage: 0
+  FireRate: 0
+  Range: 0
+  EnergyUpkeep: 3
+  Prefab: {fileID: 312894564011032502, guid: 283ba9be0663d1a418af01802d57f725, type: 3}

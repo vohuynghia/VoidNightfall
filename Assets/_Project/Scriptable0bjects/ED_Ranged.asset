@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9689cda66a8acda4cad2afe0a5bb2a1c, type: 3}
+  m_Name: ED_Ranged
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyData
+  EnemyName: Shooter
+  Prefab: {fileID: 4248883609102751302, guid: c9d893c11c7d1db40b45314be7e6f0f8, type: 3}
+  MaxHealth: 40
+  MoveSpeed: 2.5
+  AttackRange: 12
+  AttackDamage: 8
+  AttackCooldown: 2
+  AttackType: 1
+  ProjectilePrefab: {fileID: 6200543505463194746, guid: 5b2d798fa06b0034890ff4cb92f08005, type: 3}
+  ProjectileSpeed: 15
+  Strategy: 1
+  CarboniumDrop: 12
+  MetalDrop: 8

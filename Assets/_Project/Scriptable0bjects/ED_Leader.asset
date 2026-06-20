@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9689cda66a8acda4cad2afe0a5bb2a1c, type: 3}
+  m_Name: ED_Leader
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyData
+  EnemyName: Follower
+  Prefab: {fileID: 4248883609102751302, guid: 165809b7b69a1e74599a677f8b60adc4, type: 3}
+  MaxHealth: 40
+  MoveSpeed: 4
+  AttackRange: 1.5
+  AttackDamage: 8
+  AttackCooldown: 1
+  AttackType: 0
+  ProjectilePrefab: {fileID: 0}
+  ProjectileSpeed: 15
+  Strategy: 2
+  CarboniumDrop: 8
+  MetalDrop: 3

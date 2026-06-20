@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3701c2fa3ae4e604ba7015977f35a073, type: 3}
+  m_Name: BD_Generator
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingData
+  BuildingName: Power Generator
+  Description: "T\u1EA1o ra Energy cho to\xE0n b\u1ED9 c\u0103n c\u1EE9"
+  Icon: {fileID: 0}
+  Category: 2
+  Width: 1
+  Height: 1
+  CarboniumCost: 60
+  MetalCost: 40
+  EnergyCost: 0
+  Requirement: None
+  Health: 100
+  Damage: 0
+  FireRate: 0
+  Range: 0
+  EnergyUpkeep: 0
+  Prefab: {fileID: 5568129290318463566, guid: f52344cd6cddc504e94a382ca6ea2cf8, type: 3}

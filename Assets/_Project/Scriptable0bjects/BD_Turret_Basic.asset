@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3701c2fa3ae4e604ba7015977f35a073, type: 3}
+  m_Name: BD_Turret_Basic
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingData
+  BuildingName: TurretBasic
+  Description: "Th\xE1p ph\xF2ng th\u1EE7 c\u01A1 b\u1EA3n, b\u1EAFn \u0111\u1EA1n
+    t\u1ED1c \u0111\u1ED9 cao"
+  Icon: {fileID: 0}
+  Category: 0
+  Width: 1
+  Height: 1
+  CarboniumCost: 50
+  MetalCost: 30
+  EnergyCost: 0
+  Requirement: None
+  Health: 100
+  Damage: 15
+  FireRate: 1
+  Range: 14
+  EnergyUpkeep: 5
+  Prefab: {fileID: 7110154740413769812, guid: 82408a3067a401a479c6f005180ea759, type: 3}

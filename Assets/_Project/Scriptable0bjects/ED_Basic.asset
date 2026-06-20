@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9689cda66a8acda4cad2afe0a5bb2a1c, type: 3}
+  m_Name: ED_Basic
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyData
+  EnemyName: Basic
+  Prefab: {fileID: 4248883609102751302, guid: e9cc6cd6857490141bd84d1a452af202, type: 3}
+  MaxHealth: 50
+  MoveSpeed: 3
+  AttackRange: 1.5
+  AttackDamage: 10
+  AttackCooldown: 1
+  CarboniumDrop: 10
+  MetalDrop: 5
