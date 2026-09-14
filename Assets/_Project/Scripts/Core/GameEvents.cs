@@ -35,7 +35,7 @@ public struct WaveCompletedEvent
 {
 	public int WaveNumber;
 }
-
+	
 // === GAME STATE EVENTS ===
 public struct GameOverEvent
 {
