@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class CameraFollow : MonoBehaviour
 {
@@ -15,31 +15,29 @@ public class CameraFollow : MonoBehaviour
 	[SerializeField] private float _maxZoom = 1.8f;
 	[SerializeField] private float _zoomSmoothTime = 0.1f;
 
-	[Header("Rotation")]
-	[SerializeField] private float _rotateSpeed = 100f;
-
 	private Vector3 _velocity = Vector3.zero;
 	private float _zoomLevel = 1f;
 	private float _zoomVelocity = 0f;
 	private float _targetZoom = 1f;
+	private Quaternion _fixedRotation;
 
-	// L?u rotation ri�ng, kh�ng d�ng transform.rotation
-	private float _yAngle = 0f;
+	private void Awake()
+	{
+		// Tính góc quay cố định 1 lần duy nhất, dựa trên hướng offset gốc
+		_fixedRotation = Quaternion.LookRotation(-_offset.normalized);
+	}
 
 	private void LateUpdate()
 	{
 		if (_target == null) return;
 
 		HandleZoomInput();
-		HandleRotation();
 		HandleFollow();
 	}
 
 	void HandleFollow()
 	{
-		// Xoay offset theo _yAngle (do ng??i d�ng control)
-		Vector3 rotatedOffset = Quaternion.Euler(0, _yAngle, 0) * (_offset * _zoomLevel);
-		Vector3 desiredPos = _target.position + rotatedOffset;
+		Vector3 desiredPos = _target.position + (_offset * _zoomLevel);
 
 		transform.position = Vector3.SmoothDamp(
 			transform.position,
@@ -48,8 +46,8 @@ public class CameraFollow : MonoBehaviour
 			_smoothTime
 		);
 
-		// LookAt th?ng, kh�ng Slerp ?? tr�nh feedback loop
-		transform.LookAt(_target.position);
+		// Dùng góc quay cố định, KHÔNG tính lại theo vị trí tức thời
+		transform.rotation = _fixedRotation;
 	}
 
 	void HandleZoomInput()
@@ -62,13 +60,5 @@ public class CameraFollow : MonoBehaviour
 		}
 
 		_zoomLevel = Mathf.SmoothDamp(_zoomLevel, _targetZoom, ref _zoomVelocity, _zoomSmoothTime);
-	}
-
-	void HandleRotation()
-	{
-		if (Input.GetKey(KeyCode.Q))
-			_yAngle -= _rotateSpeed * Time.deltaTime;
-		if (Input.GetKey(KeyCode.E))
-			_yAngle += _rotateSpeed * Time.deltaTime;
 	}
 }
