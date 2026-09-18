@@ -13,7 +13,7 @@ public class GridManager : MonoBehaviour
 	[SerializeField] private float _cellSize = 2f;
 
 	[Header("Visual")]
-	[SerializeField] private GameObject _cellIndicatorPrefab; // ô highlight khi hover
+	[SerializeField] private GameObject _cellIndicatorPrefab; 
 
 	private GridCell[,] _grid;
 
@@ -78,6 +78,16 @@ public class GridManager : MonoBehaviour
 	{
 		if (!CanPlace(gridPos)) return false;
 		_grid[gridPos.x, gridPos.z].SetOccupied(true);
+		return true;
+	}
+
+	// Đặt building lên ô, kèm lưu thông tin object + data (dùng cho Move/Sell)
+	public bool PlaceOnGrid(Vector3Int gridPos, GameObject obj, BuildingData data)
+	{
+		if (!CanPlace(gridPos)) return false;
+		var cell = _grid[gridPos.x, gridPos.z];
+		cell.SetOccupied(true);
+		cell.SetPlacedInfo(obj, data);
 		return true;
 	}
 

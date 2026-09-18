@@ -1,14 +1,14 @@
 ﻿using UnityEngine;
 
-/// <summary>
-/// Dữ liệu của một ô trong lưới.
-/// </summary>
 public class GridCell
 {
-	public Vector3Int GridPosition { get; private set; }  // tọa độ ô (x, y, z)
-	public Vector3 WorldPosition { get; private set; }    // tọa độ thực tế trong scene
-	public bool IsOccupied { get; private set; }          // có building chưa
-	public bool IsWalkable { get; set; } = true;          // enemy có đi qua được không
+	public Vector3Int GridPosition { get; private set; }
+	public Vector3 WorldPosition { get; private set; }
+	public bool IsOccupied { get; private set; }
+	public bool IsWalkable { get; set; } = true;
+
+	public GameObject PlacedObject { get; private set; }
+	public BuildingData PlacedData { get; private set; }
 
 	public GridCell(Vector3Int gridPos, Vector3 worldPos)
 	{
@@ -20,6 +20,18 @@ public class GridCell
 	public void SetOccupied(bool occupied)
 	{
 		IsOccupied = occupied;
-		IsWalkable = !occupied; // có building thì enemy không đi qua được
+		IsWalkable = !occupied;
+
+		if (!occupied)
+		{
+			PlacedObject = null;
+			PlacedData = null;
+		}
+	}
+
+	public void SetPlacedInfo(GameObject obj, BuildingData data)
+	{
+		PlacedObject = obj;
+		PlacedData = data;
 	}
 }

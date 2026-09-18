@@ -15,7 +15,7 @@ MonoBehaviour:
   BuildingName: Carbonium Collector
   Description: "Thu th\u1EADp Carbonium t\u1EF1 \u0111\u1ED9ng theo th\u1EDDi gian"
   Icon: {fileID: 0}
-  Category: 2
+  Category: 3
   Width: 1
   Height: 1
   CarboniumCost: 30

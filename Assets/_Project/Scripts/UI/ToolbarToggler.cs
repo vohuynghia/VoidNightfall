@@ -2,17 +2,17 @@ using UnityEngine;
 
 public class ToolbarToggler : MonoBehaviour
 {
-    [SerializeField] private BuildingToolbarManager _toolbar;
+	[SerializeField] private BuildingToolbarManager _toolbar;
 
-    private void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.B))
-        {
-            bool isActive = _toolbar.gameObject.activeSelf;
-            _toolbar.ToggleToolbar(!isActive);
+	private void Update()
+	{
+		if (Input.GetKeyDown(KeyCode.B))
+		{
+			bool wasOpen = _toolbar.IsOpen;
+			_toolbar.ToggleToolbar(!wasOpen);
 
-            if (isActive)
-                BuildingInfoPanel.Instance.Hide();
-        }
-    }
+			if (wasOpen)
+				BuildingInfoPanel.Instance.Hide();
+		}
+	}
 }

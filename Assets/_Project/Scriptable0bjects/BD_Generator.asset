@@ -15,7 +15,7 @@ MonoBehaviour:
   BuildingName: Power Generator
   Description: "T\u1EA1o ra Energy cho to\xE0n b\u1ED9 c\u0103n c\u1EE9"
   Icon: {fileID: 0}
-  Category: 2
+  Category: 3
   Width: 1
   Height: 1
   CarboniumCost: 60

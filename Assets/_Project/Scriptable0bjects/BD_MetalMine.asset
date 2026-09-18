@@ -15,7 +15,7 @@ MonoBehaviour:
   BuildingName: Metal Mine
   Description: "Khai th\xE1c Metal t\u1EEB l\xF2ng \u0111\u1EA5t"
   Icon: {fileID: 0}
-  Category: 2
+  Category: 3
   Width: 1
   Height: 1
   CarboniumCost: 40

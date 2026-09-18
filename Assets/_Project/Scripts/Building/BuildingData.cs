@@ -3,6 +3,7 @@ using UnityEngine;
 
 public enum BuildingCategory
 {
+    MainBase,
     Attack,
     Defense,
     Resource,

@@ -16,7 +16,7 @@ MonoBehaviour:
   Description: "Th\xE1p ph\xF2ng th\u1EE7 c\u01A1 b\u1EA3n, b\u1EAFn \u0111\u1EA1n
     t\u1ED1c \u0111\u1ED9 cao"
   Icon: {fileID: 0}
-  Category: 0
+  Category: 1
   Width: 1
   Height: 1
   CarboniumCost: 50

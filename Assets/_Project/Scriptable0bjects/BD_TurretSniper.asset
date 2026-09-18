@@ -15,7 +15,7 @@ MonoBehaviour:
   BuildingName: Sniper Turret
   Description: "Th\xE1p t\u1EA7m xa, s\xE1t th\u01B0\u01A1ng cao, b\u1EAFn ch\u1EADm"
   Icon: {fileID: 0}
-  Category: 0
+  Category: 1
   Width: 1
   Height: 1
   CarboniumCost: 80
