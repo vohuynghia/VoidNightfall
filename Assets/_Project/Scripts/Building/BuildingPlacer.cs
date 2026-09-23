@@ -19,10 +19,12 @@ public class BuildingPlacer : MonoBehaviour
 	[SerializeField] private Material _previewInvalidMaterial;
 
 	[Header("Move / Sell")]
-	[SerializeField] private GameObject _auraPrefab;
-	[SerializeField] private Color _moveAuraColor = Color.red;
-	[SerializeField] private Color _sellAuraColor = new Color(1f, 0.5f, 0f);
 	[SerializeField, Range(0f, 1f)] private float _sellRefundPercent = 0.5f;
+	[SerializeField] private Color _moveHighlightColor = new Color(0.2f, 0.6f, 1f); // xanh dương
+	[SerializeField] private Color _sellHighlightColor = Color.red;
+
+	private static readonly int BaseColorID = Shader.PropertyToID("_BaseColor");
+	private static readonly int LegacyColorID = Shader.PropertyToID("_Color");
 
 	private BuildingData _selectedBuilding;
 	private GameObject _previewObject;
@@ -30,22 +32,15 @@ public class BuildingPlacer : MonoBehaviour
 	private Camera _camera;
 
 	private PlacedBuildingInfo _movingBuildingInfo;
+	private bool _isHoldingMovedBuilding = false;
 
-	private GameObject _auraInstance;
-	private Renderer _auraRenderer;
+	private PlacedBuildingInfo _hoveredBuilding;
 
 	private void Awake()
 	{
 		if (Instance != null && Instance != this) { Destroy(gameObject); return; }
 		Instance = this;
 		_camera = Camera.main;
-
-		if (_auraPrefab != null)
-		{
-			_auraInstance = Instantiate(_auraPrefab);
-			_auraRenderer = _auraInstance.GetComponentInChildren<Renderer>();
-			_auraInstance.SetActive(false);
-		}
 	}
 
 	private void Update()
@@ -69,7 +64,7 @@ public class BuildingPlacer : MonoBehaviour
 	void EnterPlacingMode()
 	{
 		_mode = PlacementMode.Placing;
-		SetAuraActive(false);
+		ClearHoverHighlight();
 		SpawnPreview(_selectedBuilding);
 		Debug.Log($"[BuildingPlacer] Enter placing mode: {_selectedBuilding.BuildingName}");
 	}
@@ -120,18 +115,19 @@ public class BuildingPlacer : MonoBehaviour
 	{
 		_mode = PlacementMode.Moving;
 		_movingBuildingInfo = null;
+		_isHoldingMovedBuilding = false;
 		ClearPreview();
-		SetAuraActive(true, _moveAuraColor);
-		Debug.Log("[BuildingPlacer] Enter move mode — click a building to pick it up");
+		ClearHoverHighlight();
+		Debug.Log("[BuildingPlacer] Enter move mode — hover a building then click to pick it up");
 	}
 
 	void UpdateMoving()
 	{
 		bool pointerOverUI = IsPointerOverUI();
 
-		if (_movingBuildingInfo == null)
+		if (!_isHoldingMovedBuilding)
 		{
-			UpdateAuraOnGround();
+			UpdateHoverHighlight(_moveHighlightColor);
 			if (Input.GetMouseButtonDown(0) && !pointerOverUI)
 				TryPickBuildingToMove();
 		}
@@ -151,13 +147,15 @@ public class BuildingPlacer : MonoBehaviour
 		var info = RaycastForBuilding();
 		if (info == null) return;
 
+		ClearHoverHighlight(); // bỏ highlight trước khi destroy
+
 		_movingBuildingInfo = info;
 		_selectedBuilding = info.Data;
+		_isHoldingMovedBuilding = true;
 
 		GridManager.Instance.RemoveFromGrid(info.GridPosition);
 		Destroy(info.gameObject);
 
-		SetAuraActive(false);
 		SpawnPreview(_selectedBuilding);
 
 		Debug.Log($"[BuildingPlacer] Picked up {_selectedBuilding.BuildingName} to move");
@@ -178,9 +176,9 @@ public class BuildingPlacer : MonoBehaviour
 		Debug.Log($"[BuildingPlacer] Moved {_selectedBuilding.BuildingName} to {gridPos}");
 
 		_movingBuildingInfo = null;
+		_isHoldingMovedBuilding = false;
 		_selectedBuilding = null;
 		ClearPreview();
-		SetAuraActive(true, _moveAuraColor);
 	}
 
 	// ---------- SELLING ----------
@@ -189,13 +187,13 @@ public class BuildingPlacer : MonoBehaviour
 	{
 		_mode = PlacementMode.Selling;
 		ClearPreview();
-		SetAuraActive(true, _sellAuraColor);
-		Debug.Log("[BuildingPlacer] Enter sell mode — click a building to sell it");
+		ClearHoverHighlight();
+		Debug.Log("[BuildingPlacer] Enter sell mode — hover a building then click to sell it");
 	}
 
 	void UpdateSelling()
 	{
-		UpdateAuraOnGround();
+		UpdateHoverHighlight(_sellHighlightColor);
 		bool pointerOverUI = IsPointerOverUI();
 
 		if (Input.GetMouseButtonDown(0) && !pointerOverUI)
@@ -213,6 +211,8 @@ public class BuildingPlacer : MonoBehaviour
 		var data = info.Data;
 		var gridPos = info.GridPosition;
 
+		ClearHoverHighlight(); // bỏ highlight trước khi destroy
+
 		GridManager.Instance.RemoveFromGrid(gridPos);
 		Destroy(info.gameObject);
 
@@ -224,6 +224,57 @@ public class BuildingPlacer : MonoBehaviour
 		}
 
 		Debug.Log($"[BuildingPlacer] Sold {data.BuildingName} at {gridPos}, refunded {_sellRefundPercent * 100}%");
+	}
+
+	// ---------- Hover Highlight ----------
+
+	void UpdateHoverHighlight(Color highlightColor)
+	{
+		var info = RaycastForBuilding();
+
+		if (info != _hoveredBuilding)
+		{
+			ClearHoverHighlight();
+			_hoveredBuilding = info;
+		}
+
+		if (_hoveredBuilding != null)
+			ApplyHighlight(_hoveredBuilding, highlightColor);
+	}
+
+	void ApplyHighlight(PlacedBuildingInfo info, Color color)
+	{
+		foreach (var renderer in info.GetComponentsInChildren<Renderer>())
+		{
+			int materialCount = renderer.sharedMaterials.Length;
+			for (int i = 0; i < materialCount; i++)
+			{
+				var block = new MaterialPropertyBlock();
+				renderer.GetPropertyBlock(block, i);
+
+				var mat = renderer.sharedMaterials[i];
+				if (mat != null && mat.HasProperty(BaseColorID))
+					block.SetColor(BaseColorID, color);
+				else if (mat != null && mat.HasProperty(LegacyColorID))
+					block.SetColor(LegacyColorID, color);
+
+				renderer.SetPropertyBlock(block, i);
+			}
+		}
+	}
+
+	void ClearHoverHighlight()
+	{
+		if (_hoveredBuilding == null) return;
+
+		foreach (var renderer in _hoveredBuilding.GetComponentsInChildren<Renderer>())
+		{
+			int materialCount = renderer.sharedMaterials.Length;
+			for (int i = 0; i < materialCount; i++)
+				renderer.SetPropertyBlock(null, i);
+		}
+
+		_hoveredBuilding = null;
 	}
 
 	// ---------- Dùng chung ----------
@@ -284,29 +335,14 @@ public class BuildingPlacer : MonoBehaviour
 		SetPreviewColor(canPlace);
 	}
 
-	void UpdateAuraOnGround()
-	{
-		if (_auraInstance == null) return;
-		Ray ray = _camera.ScreenPointToRay(Input.mousePosition);
-		if (Physics.Raycast(ray, out RaycastHit hit, 200f, _groundLayer))
-			_auraInstance.transform.position = hit.point + Vector3.up * 0.05f;
-	}
-
-	void SetAuraActive(bool active, Color? color = null)
-	{
-		if (_auraInstance == null) return;
-		_auraInstance.SetActive(active);
-		if (active && color.HasValue && _auraRenderer != null)
-			_auraRenderer.material.color = color.Value;
-	}
-
 	void ExitMode()
 	{
 		_mode = PlacementMode.None;
 		_selectedBuilding = null;
 		_movingBuildingInfo = null;
+		_isHoldingMovedBuilding = false;
 		ClearPreview();
-		SetAuraActive(false);
+		ClearHoverHighlight();
 
 		Debug.Log("[BuildingPlacer] Exit mode");
 		if (BuildingToolbarManager.Instance != null)
