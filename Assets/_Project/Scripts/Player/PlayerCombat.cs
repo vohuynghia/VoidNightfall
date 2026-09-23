@@ -11,7 +11,7 @@ public class PlayerCombat : MonoBehaviour
 	[Header("Gun - Chu?t trái")]
 	[SerializeField] private GameObject _projectilePrefab;
 	[SerializeField] private Transform _gunPoint;       // ?i?m b?n ??n
-	[SerializeField] private float _fireRate = 0.15f;   // giây gi?a m?i viên
+	[SerializeField] private float _fireRate = 0.15f;   // Giây gi?a m?i viên
 	[SerializeField] private float _bulletSpeed = 20f;
 	[SerializeField] private float _bulletDamage = 10f;
 
@@ -23,21 +23,28 @@ public class PlayerCombat : MonoBehaviour
 	private float _nextFireTime;
 	private float _nextMeleeTime;
 	private Camera _camera;
+	private PlayerController _controller;
 
 	private void Awake()
 	{
 		_camera = Camera.main;
+		_controller = GetComponent<PlayerController>();
 	}
 
 	private void Update()
 	{
+		// Luôn xoay v? h??ng con tr? chu?t trên m?t ??t ph?ng
 		RotateTowardsMouse();
 
-		// Gi? chu?t trái ? b?n
+		// N?u ?ang l??t thì không cho phép t?n công
+		if (_controller != null && _controller.IsDashing)
+			return;
+
+		// Gi? chu?t trái -> B?n
 		if (Input.GetMouseButton(0) && !IsPointerOverUI())
 			TryShoot();
 
-		// Click chu?t ph?i ? chém
+		// Click chu?t ph?i -> Chém
 		if (Input.GetMouseButtonDown(1) && !IsPointerOverUI())
 			TryMelee();
 	}
@@ -45,7 +52,18 @@ public class PlayerCombat : MonoBehaviour
 	void RotateTowardsMouse()
 	{
 		Ray ray = _camera.ScreenPointToRay(Input.mousePosition);
-		if (Physics.Raycast(ray, out RaycastHit hit, 200f))
+		// Dùng Plane ph?ng y = transform.position.y ho?c Raycast
+		Plane groundPlane = new Plane(Vector3.up, new Vector3(0, transform.position.y, 0));
+
+		if (groundPlane.Raycast(ray, out float enter))
+		{
+			Vector3 hitPoint = ray.GetPoint(enter);
+			Vector3 dir = hitPoint - transform.position;
+			dir.y = 0;
+			if (dir.sqrMagnitude > 0.001f)
+				transform.rotation = Quaternion.LookRotation(dir);
+		}
+		else if (Physics.Raycast(ray, out RaycastHit hit, 200f))
 		{
 			Vector3 dir = hit.point - transform.position;
 			dir.y = 0;
@@ -61,7 +79,6 @@ public class PlayerCombat : MonoBehaviour
 
 		_nextFireTime = Time.time + _fireRate;
 
-		// H??ng b?n = h??ng nhân v?t ?ang nhìn
 		Vector3 direction = transform.forward;
 		GameObject bullet = Instantiate(_projectilePrefab, _gunPoint.position, Quaternion.identity);
 		bullet.GetComponent<Projectile>().Init(direction, _bulletSpeed, _bulletDamage, "Enemy");
@@ -72,7 +89,6 @@ public class PlayerCombat : MonoBehaviour
 		if (Time.time < _nextMeleeTime) return;
 		_nextMeleeTime = Time.time + _meleeCooldown;
 
-		// Phát hi?n enemy trong vòng tròn xung quanh
 		Collider[] hits = Physics.OverlapSphere(transform.position, _meleeRange);
 		foreach (var hit in hits)
 		{
@@ -93,7 +109,6 @@ public class PlayerCombat : MonoBehaviour
 			   UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject();
 	}
 
-	// V? melee range trong Scene view
 	private void OnDrawGizmosSelected()
 	{
 		Gizmos.color = Color.red;

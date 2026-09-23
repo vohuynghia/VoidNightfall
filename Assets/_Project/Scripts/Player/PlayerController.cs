@@ -1,19 +1,36 @@
+using System.Collections;
 using UnityEngine;
 
+[RequireComponent(typeof(Rigidbody))]
 public class PlayerController : MonoBehaviour
 {
 	[Header("Movement")]
 	[SerializeField] private float _moveSpeed = 8f;
-	[SerializeField] private float _rotateSpeed = 15f;
+
+	[Header("Dash Settings")]
+	[SerializeField] private KeyCode _dashKey = KeyCode.Space;
+	[SerializeField] private float _dashSpeed = 22f;         
+	[SerializeField] private float _dashDuration = 0.2f;       
+	[SerializeField] private float _dashCooldown = 1.0f;      
+	[SerializeField] private bool _enableInvulnerability = true; // B?t t? khi l??t (I-Frames)
 
 	private Rigidbody _rb;
-	private Vector3 _moveDirection;
 	private Animator _animator;
+	private HealthSystem _healthSystem;
+
+	private Vector3 _moveDirection;
+	private Vector3 _dashDirection;
+	private bool _isDashing;
+	private float _nextDashTime;
+
+
+	public bool IsDashing => _isDashing;
 
 	private void Awake()
 	{
 		_rb = GetComponent<Rigidbody>();
 		_animator = GetComponentInChildren<Animator>();
+		_healthSystem = GetComponent<HealthSystem>();
 	}
 
 	private void Update()
@@ -21,24 +38,74 @@ public class PlayerController : MonoBehaviour
 		float h = Input.GetAxisRaw("Horizontal");
 		float v = Input.GetAxisRaw("Vertical");
 		_moveDirection = new Vector3(h, 0, v).normalized;
+
 		if (_animator != null)
 			_animator.SetFloat("Speed", _moveDirection.magnitude);
+
+		// Kích ho?t l??t
+		if (Input.GetKeyDown(_dashKey) && CanDash())
+		{
+			StartCoroutine(PerformDash());
+		}
 	}
 
 	private void FixedUpdate()
 	{
+		if (_isDashing)
+		{
+			// Trong khi l??t: di chuy?n theo h??ng dash v?i t?c ?? cao, gi? nguyên v?n t?c tr?c Y
+			Vector3 dashVelocity = _dashDirection * _dashSpeed;
+			dashVelocity.y = _rb.linearVelocity.y;
+			_rb.linearVelocity = dashVelocity;
+			return;
+		}
+
+		// Di chuy?n thông th??ng
 		Vector3 velocity = _moveDirection * _moveSpeed;
 		velocity.y = _rb.linearVelocity.y;
 		_rb.linearVelocity = velocity;
 
+	}
+
+	private bool CanDash()
+	{
+		return !_isDashing && Time.time >= _nextDashTime;
+	}
+
+	private IEnumerator PerformDash()
+	{
+		_isDashing = true;
+		_nextDashTime = Time.time + _dashCooldown;
+
+		// Xác ??nh h??ng dash
 		if (_moveDirection != Vector3.zero)
 		{
-			Quaternion targetRotation = Quaternion.LookRotation(_moveDirection);
-			transform.rotation = Quaternion.Slerp(
-				transform.rotation,
-				targetRotation,
-				_rotateSpeed * Time.fixedDeltaTime
-			);
+			_dashDirection = _moveDirection;
 		}
+		else
+		{
+			_dashDirection = transform.forward;
+			_dashDirection.y = 0;
+			_dashDirection.Normalize();
+		}
+
+		// B?t I-Frames: Ng??i ch?i không nh?n sát th??ng khi ?ang l??t
+		if (_enableInvulnerability && _healthSystem != null)
+		{
+			_healthSystem.IsInvulnerable = true;
+		}
+
+		if (_animator != null)
+			_animator.SetTrigger("Dash");
+
+		yield return new WaitForSeconds(_dashDuration);
+
+		// T?t I-Frames sau khi k?t thúc l??t
+		if (_enableInvulnerability && _healthSystem != null)
+		{
+			_healthSystem.IsInvulnerable = false;
+		}
+
+		_isDashing = false;
 	}
 }

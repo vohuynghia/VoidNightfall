@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.Events;
 
 /// <summary>
-/// Qu?n lý máu. Dùng cho c? Player và Enemy.
+/// Qu?n lý máu. Dùng cho c? Player, Enemy và Công trình.
 /// </summary>
 public class HealthSystem : MonoBehaviour
 {
@@ -13,7 +13,14 @@ public class HealthSystem : MonoBehaviour
 	public float MaxHealth => _maxHealth;
 	public bool IsDead { get; private set; }
 
-	public UnityEvent<float, float> OnHealthChanged; // current, max
+	/// <summary>
+	/// Tr?ng thái b?t t? (mi?n nhi?m sát th??ng khi Dash ho?c có khiên b?o v?)
+	/// </summary>
+	public bool IsInvulnerable { get; set; }
+
+	[Header("Events")]
+	public UnityEvent<float, float> OnHealthChanged; // (current, max)
+	public UnityEvent<float> OnDamaged;              // L??ng sát th??ng v?a nh?n (dùng ?? rung l?c/ch?p ??)
 	public UnityEvent OnDeath;
 
 	private void Awake()
@@ -23,10 +30,12 @@ public class HealthSystem : MonoBehaviour
 
 	public void TakeDamage(float amount)
 	{
-		if (IsDead) return;
+		// B? qua n?u ?ã ch?t ho?c ?ang ? tr?ng thái b?t t? (I-Frames)
+		if (IsDead || IsInvulnerable) return;
 
 		CurrentHealth = Mathf.Max(0, CurrentHealth - amount);
 		OnHealthChanged?.Invoke(CurrentHealth, _maxHealth);
+		OnDamaged?.Invoke(amount);
 
 		if (CurrentHealth <= 0)
 			Die();
