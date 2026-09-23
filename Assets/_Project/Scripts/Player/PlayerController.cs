@@ -23,14 +23,22 @@ public class PlayerController : MonoBehaviour
 	private bool _isDashing;
 	private float _nextDashTime;
 
+	private int _originalLayer;
+	private int _dashingLayer;
 
 	public bool IsDashing => _isDashing;
+
+	private DashGhostTrail _ghostTrail;
 
 	private void Awake()
 	{
 		_rb = GetComponent<Rigidbody>();
 		_animator = GetComponentInChildren<Animator>();
 		_healthSystem = GetComponent<HealthSystem>();
+
+		_originalLayer = gameObject.layer;
+		_dashingLayer = LayerMask.NameToLayer("PlayerDashing");
+		_ghostTrail = GetComponent<DashGhostTrail>();
 	}
 
 	private void Update()
@@ -77,11 +85,15 @@ public class PlayerController : MonoBehaviour
 		_isDashing = true;
 		_nextDashTime = Time.time + _dashCooldown;
 
-		// Xác ??nh h??ng dash
+		// B?t hi?u ?ng v?t m?
+		if (_ghostTrail != null)
+			_ghostTrail.StartGhostTrail();
+
+		if (_dashingLayer != -1)
+			gameObject.layer = _dashingLayer;
+
 		if (_moveDirection != Vector3.zero)
-		{
 			_dashDirection = _moveDirection;
-		}
 		else
 		{
 			_dashDirection = transform.forward;
@@ -89,23 +101,22 @@ public class PlayerController : MonoBehaviour
 			_dashDirection.Normalize();
 		}
 
-		// B?t I-Frames: Ng??i ch?i không nh?n sát th??ng khi ?ang l??t
 		if (_enableInvulnerability && _healthSystem != null)
-		{
 			_healthSystem.IsInvulnerable = true;
-		}
 
 		if (_animator != null)
 			_animator.SetTrigger("Dash");
 
 		yield return new WaitForSeconds(_dashDuration);
 
-		// T?t I-Frames sau khi k?t thúc l??t
-		if (_enableInvulnerability && _healthSystem != null)
-		{
-			_healthSystem.IsInvulnerable = false;
-		}
+		// T?t hi?u ?ng v?t m? khi h?t th?i gian l??t
+		if (_ghostTrail != null)
+			_ghostTrail.StopGhostTrail();
 
+		if (_enableInvulnerability && _healthSystem != null)
+			_healthSystem.IsInvulnerable = false;
+
+		gameObject.layer = _originalLayer;
 		_isDashing = false;
 	}
 }
