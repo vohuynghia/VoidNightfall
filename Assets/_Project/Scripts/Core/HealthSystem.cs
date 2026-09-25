@@ -27,6 +27,7 @@ public class HealthSystem : MonoBehaviour
 	private void Awake()
 	{
 		CurrentHealth = _maxHealth;
+		_shield = GetComponent<ShieldSystem>();
 	}
 
 	public void TakeDamage(float amount)

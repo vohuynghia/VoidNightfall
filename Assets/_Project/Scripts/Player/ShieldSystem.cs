@@ -12,7 +12,7 @@ public class ShieldSystem : MonoBehaviour
 	[SerializeField] private float _rechargeRate = 15f;      // Lượng giáp hồi mỗi giây
 	[SerializeField] private float _rechargeDelay = 4f;       // Thời gian chờ (giây) không dính đòn trước khi bắt đầu hồi
 
-	public float CurrentShield { get; private set; }
+	public float CurrentShield { get; private set; } = 100f;
 	public float MaxShield => _maxShield;
 
 	public UnityEvent<float, float> OnShieldChanged; // (current, max)
