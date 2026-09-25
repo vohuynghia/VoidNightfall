@@ -1,17 +1,17 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 /// <summary>
-/// X? l� combat c?a player:
-/// Chu?t tr�i gi? = b?n ??n
-/// Chu?t ph?i click = ch�m g?n
-/// Nh�n v?t lu�n xoay v? h??ng chu?t khi combat
+/// X? lý combat c?a player:
+/// Chu?t trái gi? = b?n ??n
+/// Chu?t ph?i click = chém g?n
+/// Nhân v?t luôn xoay v? h??ng chu?t khi combat
 /// </summary>
 public class PlayerCombat : MonoBehaviour
 {
-	[Header("Gun - Chu?t tr�i")]
+	[Header("Gun - Chu?t trái")]
 	[SerializeField] private GameObject _projectilePrefab;
 	[SerializeField] private Transform _gunPoint;       // ?i?m b?n ??n
-	[SerializeField] private float _fireRate = 0.15f;   // Gi�y gi?a m?i vi�n
+	[SerializeField] private float _fireRate = 0.15f;   // Giây gi?a m?i viên
 	[SerializeField] private float _bulletSpeed = 20f;
 	[SerializeField] private float _bulletDamage = 10f;
 
@@ -33,18 +33,18 @@ public class PlayerCombat : MonoBehaviour
 
 	private void Update()
 	{
-		// Lu�n xoay v? h??ng con tr? chu?t tr�n m?t ??t ph?ng
+		// Luôn xoay v? h??ng con tr? chu?t trên m?t ??t ph?ng
 		RotateTowardsMouse();
 
-		// N?u ?ang l??t th� kh�ng cho ph�p t?n c�ng
+		// N?u ?ang l??t thì không cho phép t?n công
 		if (_controller != null && _controller.IsDashing)
 			return;
 
-		// Gi? chu?t tr�i -> B?n
+		// Gi? chu?t trái -> B?n
 		if (Input.GetMouseButton(0) && !IsPointerOverUI())
 			TryShoot();
 
-		// Click chu?t ph?i -> Ch�m
+		// Click chu?t ph?i -> Chém
 		if (Input.GetMouseButtonDown(1) && !IsPointerOverUI())
 			TryMelee();
 	}
@@ -52,7 +52,7 @@ public class PlayerCombat : MonoBehaviour
 	void RotateTowardsMouse()
 	{
 		Ray ray = _camera.ScreenPointToRay(Input.mousePosition);
-		// D�ng Plane ph?ng y = transform.position.y ho?c Raycast
+		// Dùng Plane ph?ng y = transform.position.y ho?c Raycast
 		Plane groundPlane = new Plane(Vector3.up, new Vector3(0, transform.position.y, 0));
 
 		if (groundPlane.Raycast(ray, out float enter))
@@ -89,6 +89,9 @@ public class PlayerCombat : MonoBehaviour
 		if (Time.time < _nextMeleeTime) return;
 		_nextMeleeTime = Time.time + _meleeCooldown;
 
+		bool hitAnyEnemy = false;
+
+		// Phát hiện quái trong tầm quét bán nguyệt/vòng tròn
 		Collider[] hits = Physics.OverlapSphere(transform.position, _meleeRange);
 		foreach (var hit in hits)
 		{
@@ -96,9 +99,16 @@ public class PlayerCombat : MonoBehaviour
 			if (hit.TryGetComponent<HealthSystem>(out var health))
 			{
 				health.TakeDamage(_meleeDamage);
+				hitAnyEnemy = true;
 				Debug.Log($"[PlayerCombat] Melee hit: {hit.gameObject.name}");
 			}
 		}
+
+		// Nếu chém trúng ít nhất 1 con quái -> Rung giật màn hình dứt khoát
+		//if (hitAnyEnemy && CameraShake.Instance != null)
+		//{
+		//	CameraShake.Instance.Shake(0.08f, 0.08f);
+		//}
 
 		Debug.Log("[PlayerCombat] Melee attack!");
 	}

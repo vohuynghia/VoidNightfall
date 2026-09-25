@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 7352418738376814098}
   - component: {fileID: 2547492766358013679}
   - component: {fileID: 3443118748839593579}
+  - component: {fileID: 243614730753412258}
   m_Layer: 8
   m_Name: Enemy_Hunter
   m_TagString: Enemy
@@ -181,6 +182,20 @@ NavMeshAgent:
   m_BaseOffset: 1
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
+--- !u!114 &243614730753412258
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4248883609102751302}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d8a4e7ddf25cc1469d0920a82db4a0c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHitFlash
+  _flashColor: {r: 1, g: 1, b: 1, a: 1}
+  _flashDuration: 0.06
 --- !u!1001 &8565274596861213951
 PrefabInstance:
   m_ObjectHideFlags: 0
