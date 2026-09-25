@@ -1,8 +1,8 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Events;
 
 /// <summary>
-/// Qu?n l� m�u. D�ng cho c? Player, Enemy v� C�ng tr�nh.
+/// Quản lý máu. Dùng cho cả Player, Enemy và Công trình.
 /// </summary>
 public class HealthSystem : MonoBehaviour
 {
@@ -14,14 +14,15 @@ public class HealthSystem : MonoBehaviour
 	public bool IsDead { get; private set; }
 
 	/// <summary>
-	/// Tr?ng th�i b?t t? (mi?n nhi?m s�t th??ng khi Dash ho?c c� khi�n b?o v?)
+	/// Trạng thái bất tử (miễn nhiễm sát thương khi Dash hoặc có khiên bảo vệ)
 	/// </summary>
 	public bool IsInvulnerable { get; set; }
 
 	[Header("Events")]
 	public UnityEvent<float, float> OnHealthChanged; // (current, max)
-	public UnityEvent<float> OnDamaged;              // L??ng s�t th??ng v?a nh?n (d�ng ?? rung l?c/ch?p ??)
+	public UnityEvent<float> OnDamaged;              // Lượng sát thương vừa nhận (dùng để rung lắc/chớp đỏ)
 	public UnityEvent OnDeath;
+	private ShieldSystem _shield;
 
 	private void Awake()
 	{
@@ -30,8 +31,14 @@ public class HealthSystem : MonoBehaviour
 
 	public void TakeDamage(float amount)
 	{
-		// B? qua n?u ?� ch?t ho?c ?ang ? tr?ng th�i b?t t? (I-Frames)
 		if (IsDead || IsInvulnerable) return;
+
+		// Trừ qua giáp trước nếu tồn tại ShieldSystem
+		if (_shield != null)
+		{
+			amount = _shield.AbsorbDamage(amount);
+			if (amount <= 0) return;
+		}
 
 		CurrentHealth = Mathf.Max(0, CurrentHealth - amount);
 		OnHealthChanged?.Invoke(CurrentHealth, _maxHealth);

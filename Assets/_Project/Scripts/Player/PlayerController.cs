@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody))]
@@ -12,7 +12,7 @@ public class PlayerController : MonoBehaviour
 	[SerializeField] private float _dashSpeed = 22f;         
 	[SerializeField] private float _dashDuration = 0.2f;       
 	[SerializeField] private float _dashCooldown = 1.0f;      
-	[SerializeField] private bool _enableInvulnerability = true; // B?t t? khi l??t (I-Frames)
+	[SerializeField] private bool _enableInvulnerability = true; // Bất tử khi lướt (I-Frames)
 
 	private Rigidbody _rb;
 	private Animator _animator;
@@ -29,6 +29,9 @@ public class PlayerController : MonoBehaviour
 	public bool IsDashing => _isDashing;
 
 	private DashGhostTrail _ghostTrail;
+
+	public float DashCooldownDuration => _dashCooldown;
+	public float DashCooldownRemaining => Mathf.Max(0, _nextDashTime - Time.time);
 
 	private void Awake()
 	{
@@ -50,7 +53,7 @@ public class PlayerController : MonoBehaviour
 		if (_animator != null)
 			_animator.SetFloat("Speed", _moveDirection.magnitude);
 
-		// K�ch ho?t l??t
+		// Kích hoạt lướt
 		if (Input.GetKeyDown(_dashKey) && CanDash())
 		{
 			StartCoroutine(PerformDash());
@@ -61,14 +64,14 @@ public class PlayerController : MonoBehaviour
 	{
 		if (_isDashing)
 		{
-			// Trong khi l??t: di chuy?n theo h??ng dash v?i t?c ?? cao, gi? nguy�n v?n t?c tr?c Y
+			// Trong khi lướt: di chuyển theo hướng dash với tốc độ cao, giữ nguyên vận tốc trục Y
 			Vector3 dashVelocity = _dashDirection * _dashSpeed;
 			dashVelocity.y = _rb.linearVelocity.y;
 			_rb.linearVelocity = dashVelocity;
 			return;
 		}
 
-		// Di chuy?n th�ng th??ng
+		// Di chuyển thông thường
 		Vector3 velocity = _moveDirection * _moveSpeed;
 		velocity.y = _rb.linearVelocity.y;
 		_rb.linearVelocity = velocity;
@@ -85,7 +88,7 @@ public class PlayerController : MonoBehaviour
 		_isDashing = true;
 		_nextDashTime = Time.time + _dashCooldown;
 
-		// B?t hi?u ?ng v?t m?
+		// Bật hiệu ứng vệt mờ
 		if (_ghostTrail != null)
 			_ghostTrail.StartGhostTrail();
 
@@ -109,7 +112,7 @@ public class PlayerController : MonoBehaviour
 
 		yield return new WaitForSeconds(_dashDuration);
 
-		// T?t hi?u ?ng v?t m? khi h?t th?i gian l??t
+		// Tắt hiệu ứng vệt mờ khi hết thời gian lướt
 		if (_ghostTrail != null)
 			_ghostTrail.StopGhostTrail();
 
