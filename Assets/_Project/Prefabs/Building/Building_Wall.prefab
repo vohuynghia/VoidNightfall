@@ -13,6 +13,8 @@ GameObject:
   - component: {fileID: 2472485015585281107}
   - component: {fileID: 7659796864113702781}
   - component: {fileID: 222861647801106945}
+  - component: {fileID: 6605541030109816849}
+  - component: {fileID: 2462387840170198184}
   m_Layer: 0
   m_Name: Building_Wall
   m_TagString: Building
@@ -108,6 +110,9 @@ MonoBehaviour:
   OnHealthChanged:
     m_PersistentCalls:
       m_Calls: []
+  OnDamaged:
+    m_PersistentCalls:
+      m_Calls: []
   OnDeath:
     m_PersistentCalls:
       m_Calls: []
@@ -134,3 +139,30 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0.000000059604645, y: 0, z: -0.00000008940697}
+--- !u!114 &6605541030109816849
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4420410617318758294}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0d6747bff70b6db438007b3a88c37d1d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlacedBuildingInfo
+--- !u!114 &2462387840170198184
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4420410617318758294}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00ab9bffc4aa6b049be61ffa6910d255, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingLifecycle
+  _hologramMaterial: {fileID: 2100000, guid: c20032a2ecddb1e48913f5be08e1b726, type: 2}
+  _ruinedColor: {r: 0.2, g: 0.2, b: 0.2, a: 1}
+  _ruinedFireVfxPrefab: {fileID: 0}

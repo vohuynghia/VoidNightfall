@@ -287,6 +287,12 @@ public class BuildingPlacer : MonoBehaviour
 		var info = obj.AddComponent<PlacedBuildingInfo>();
 		info.Init(data, gridPos);
 
+		if (!obj.TryGetComponent<BuildingLifecycle>(out var lifecycle))
+		{
+			lifecycle = obj.AddComponent<BuildingLifecycle>();
+		}
+		lifecycle.InitLifecycle(data);
+
 		GridManager.Instance.PlaceOnGrid(gridPos, obj, data);
 		ClearPreview();
 	}

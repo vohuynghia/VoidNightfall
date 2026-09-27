@@ -271,6 +271,8 @@ GameObject:
   - component: {fileID: 3361796602210193075}
   - component: {fileID: 6229800309373420673}
   - component: {fileID: 5757545467796019520}
+  - component: {fileID: -3433405259366519639}
+  - component: {fileID: 3334102678879270015}
   m_Layer: 0
   m_Name: Turret_Basic 1
   m_TagString: Building
@@ -404,6 +406,36 @@ MonoBehaviour:
   OnHealthChanged:
     m_PersistentCalls:
       m_Calls: []
+  OnDamaged:
+    m_PersistentCalls:
+      m_Calls: []
   OnDeath:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &-3433405259366519639
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7110154740413769812}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0d6747bff70b6db438007b3a88c37d1d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlacedBuildingInfo
+--- !u!114 &3334102678879270015
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7110154740413769812}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00ab9bffc4aa6b049be61ffa6910d255, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingLifecycle
+  _hologramMaterial: {fileID: 2100000, guid: c20032a2ecddb1e48913f5be08e1b726, type: 2}
+  _ruinedColor: {r: 0.2, g: 0.2, b: 0.2, a: 1}
+  _ruinedFireVfxPrefab: {fileID: 0}

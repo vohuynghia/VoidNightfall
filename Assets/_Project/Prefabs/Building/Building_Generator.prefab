@@ -14,6 +14,8 @@ GameObject:
   - component: {fileID: 6279843110004991730}
   - component: {fileID: 8990472968110327296}
   - component: {fileID: 1032777197253997037}
+  - component: {fileID: 3464007173046894580}
+  - component: {fileID: 7662652161175223806}
   m_Layer: 0
   m_Name: Building_Generator
   m_TagString: Building
@@ -147,6 +149,36 @@ MonoBehaviour:
   OnHealthChanged:
     m_PersistentCalls:
       m_Calls: []
+  OnDamaged:
+    m_PersistentCalls:
+      m_Calls: []
   OnDeath:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &3464007173046894580
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5568129290318463566}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0d6747bff70b6db438007b3a88c37d1d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlacedBuildingInfo
+--- !u!114 &7662652161175223806
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5568129290318463566}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00ab9bffc4aa6b049be61ffa6910d255, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingLifecycle
+  _hologramMaterial: {fileID: 2100000, guid: c20032a2ecddb1e48913f5be08e1b726, type: 2}
+  _ruinedColor: {r: 0.2, g: 0.2, b: 0.2, a: 1}
+  _ruinedFireVfxPrefab: {fileID: 0}

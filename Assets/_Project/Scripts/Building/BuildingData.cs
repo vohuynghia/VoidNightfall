@@ -33,6 +33,7 @@ public class BuildingData : ScriptableObject
 
     [Header("Stats")]
     public float Health = 100f;
+    public float BuildTime = 5f;
     public float Damage;
     public float FireRate;
     public float Range;
