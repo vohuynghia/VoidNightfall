@@ -147,6 +147,13 @@ public class BuildingPlacer : MonoBehaviour
 		var info = RaycastForBuilding();
 		if (info == null) return;
 
+		// Kiểm tra nếu công trình không có Data thì không cho Move để tránh văng lỗi
+		if (info.Data == null)
+		{
+			Debug.LogWarning($"[BuildingPlacer] Công trình {info.gameObject.name} thiếu BuildingData, không thể di chuyển!");
+			return;
+		}
+
 		ClearHoverHighlight(); // bỏ highlight trước khi destroy
 
 		_movingBuildingInfo = info;
@@ -208,6 +215,16 @@ public class BuildingPlacer : MonoBehaviour
 		var info = RaycastForBuilding();
 		if (info == null) return;
 
+		// Kiểm tra nếu công trình không có Data
+		if (info.Data == null)
+		{
+			Debug.LogWarning($"[BuildingPlacer] Công trình {info.gameObject.name} thiếu BuildingData, xóa bỏ không hoàn tiền!");
+			GridManager.Instance.RemoveFromGrid(info.GridPosition);
+			Destroy(info.gameObject);
+			ClearHoverHighlight();
+			return;
+		}
+
 		var data = info.Data;
 		var gridPos = info.GridPosition;
 
@@ -220,7 +237,7 @@ public class BuildingPlacer : MonoBehaviour
 		{
 			int refund = Mathf.RoundToInt(kvp.Value * _sellRefundPercent);
 			if (refund > 0)
-				ResourceManager.Instance.Add(kvp.Key, refund); // TODO: xác nhận đúng tên hàm cộng resource
+				ResourceManager.Instance.Add(kvp.Key, refund);
 		}
 
 		Debug.Log($"[BuildingPlacer] Sold {data.BuildingName} at {gridPos}, refunded {_sellRefundPercent * 100}%");
@@ -284,7 +301,10 @@ public class BuildingPlacer : MonoBehaviour
 		Vector3 worldPos = GridManager.Instance.GridToWorld(gridPos);
 		GameObject obj = Instantiate(data.Prefab, worldPos, Quaternion.identity);
 
-		var info = obj.AddComponent<PlacedBuildingInfo>();
+		if (!obj.TryGetComponent<PlacedBuildingInfo>(out var info))
+		{
+			info = obj.AddComponent<PlacedBuildingInfo>();
+		}
 		info.Init(data, gridPos);
 
 		if (!obj.TryGetComponent<BuildingLifecycle>(out var lifecycle))
