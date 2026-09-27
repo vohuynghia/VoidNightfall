@@ -334,9 +334,8 @@ public class BuildingPlacer : MonoBehaviour
 		Vector3 worldPos = GridManager.Instance.GridToWorld(gridPos);
 		_previewObject.transform.position = worldPos + Vector3.up * 0.1f;
 
-		bool canPlace = GridManager.Instance.CanPlace(gridPos) &&
-						(_mode == PlacementMode.Moving ||
-						 ResourceManager.Instance.HasEnough(ResourceType.Carbonium, _selectedBuilding.CarboniumCost));
+		bool hasResources = (_mode == PlacementMode.Moving) || HasEnoughResourcesForSelected();
+		bool canPlace = GridManager.Instance.CanPlace(gridPos) && hasResources;
 
 		SetPreviewColor(canPlace);
 	}
@@ -382,5 +381,17 @@ public class BuildingPlacer : MonoBehaviour
 
 		foreach (var renderer in _previewObject.GetComponentsInChildren<Renderer>())
 			renderer.material = material;
+	}
+	// Ham kiem tra tai nguyen khi xay cong trinh
+	bool HasEnoughResourcesForSelected()
+	{
+		if (_selectedBuilding == null) return false;
+
+		foreach (var kvp in _selectedBuilding.GetCosts())
+		{
+			if (!ResourceManager.Instance.HasEnough(kvp.Key, kvp.Value))
+				return false; // Thiếu bất kỳ tài nguyên nào thì trả về false ngay
+		}
+		return true;
 	}
 }
