@@ -73,11 +73,18 @@ public class BuildingLifecycle : MonoBehaviour
 			_healthSystem.OnDeath.RemoveListener(OnBuildingDestroyed);
 		}
 	}
+	/// Dùng khi di chuyển công trình hoặc load game: Bỏ qua đếm ngược và hoạt động luôn.
+	public void SetActiveInstantly()
+	{
+		CacheRenderers();
+		State = BuildingState.Active;
+		RestoreOriginalVisual();
+		SetFunctionalityEnabled(true);
+	}
 
 	// ================== GIAI ĐOẠN 1: XÂY DỰNG ==================
-	/// <summary>
+
 	/// Hàm khởi tạo tiến trình xây dựng được gọi trực tiếp từ BuildingPlacer
-	/// </summary>
 	public void InitLifecycle(BuildingData data)
 	{
 		CacheRenderers();

@@ -147,14 +147,23 @@ public class BuildingPlacer : MonoBehaviour
 		var info = RaycastForBuilding();
 		if (info == null) return;
 
-		// Kiểm tra nếu công trình không có Data thì không cho Move để tránh văng lỗi
+		// Kiểm tra nếu công trình đang xây dựng -> Chặn không cho di chuyển
+		if (info.TryGetComponent<BuildingLifecycle>(out var lifecycle))
+		{
+			if (lifecycle.State == BuildingState.Constructing)
+			{
+				Debug.Log($"[BuildingPlacer] Không thể di chuyển {info.gameObject.name} khi đang xây dựng!");
+				return;
+			}
+		}
+
 		if (info.Data == null)
 		{
 			Debug.LogWarning($"[BuildingPlacer] Công trình {info.gameObject.name} thiếu BuildingData, không thể di chuyển!");
 			return;
 		}
 
-		ClearHoverHighlight(); // bỏ highlight trước khi destroy
+		ClearHoverHighlight();
 
 		_movingBuildingInfo = info;
 		_selectedBuilding = info.Data;
@@ -179,7 +188,7 @@ public class BuildingPlacer : MonoBehaviour
 			return;
 		}
 
-		SpawnBuildingAt(gridPos, _selectedBuilding);
+		SpawnBuildingAt(gridPos, _selectedBuilding, false);
 		Debug.Log($"[BuildingPlacer] Moved {_selectedBuilding.BuildingName} to {gridPos}");
 
 		_movingBuildingInfo = null;
@@ -215,7 +224,16 @@ public class BuildingPlacer : MonoBehaviour
 		var info = RaycastForBuilding();
 		if (info == null) return;
 
-		// Kiểm tra nếu công trình không có Data
+		// Kiểm tra nếu công trình đang xây dựng -> Chặn không cho bán
+		if (info.TryGetComponent<BuildingLifecycle>(out var lifecycle))
+		{
+			if (lifecycle.State == BuildingState.Constructing)
+			{
+				Debug.Log($"[BuildingPlacer] Không thể bán {info.gameObject.name} khi đang xây dựng!");
+				return;
+			}
+		}
+
 		if (info.Data == null)
 		{
 			Debug.LogWarning($"[BuildingPlacer] Công trình {info.gameObject.name} thiếu BuildingData, xóa bỏ không hoàn tiền!");
@@ -228,7 +246,7 @@ public class BuildingPlacer : MonoBehaviour
 		var data = info.Data;
 		var gridPos = info.GridPosition;
 
-		ClearHoverHighlight(); // bỏ highlight trước khi destroy
+		ClearHoverHighlight();
 
 		GridManager.Instance.RemoveFromGrid(gridPos);
 		Destroy(info.gameObject);
@@ -248,6 +266,15 @@ public class BuildingPlacer : MonoBehaviour
 	void UpdateHoverHighlight(Color highlightColor)
 	{
 		var info = RaycastForBuilding();
+
+		if (info != null && info.TryGetComponent<BuildingLifecycle>(out var lifecycle))
+		{
+			if (lifecycle.State == BuildingState.Constructing)
+			{
+				ClearHoverHighlight();
+				return;
+			}
+		}
 
 		if (info != _hoveredBuilding)
 		{
@@ -296,7 +323,7 @@ public class BuildingPlacer : MonoBehaviour
 
 	// ---------- Dùng chung ----------
 
-	void SpawnBuildingAt(Vector3Int gridPos, BuildingData data)
+	void SpawnBuildingAt(Vector3Int gridPos, BuildingData data, bool isNewConstruction = true)
 	{
 		Vector3 worldPos = GridManager.Instance.GridToWorld(gridPos);
 		GameObject obj = Instantiate(data.Prefab, worldPos, Quaternion.identity);
@@ -311,7 +338,16 @@ public class BuildingPlacer : MonoBehaviour
 		{
 			lifecycle = obj.AddComponent<BuildingLifecycle>();
 		}
-		lifecycle.InitLifecycle(data);
+
+		// Nếu là xây mới thì mới đếm ngược, nếu là Move thì kích hoạt ngay lập tức
+		if (isNewConstruction)
+		{
+			lifecycle.InitLifecycle(data);
+		}
+		else
+		{
+			lifecycle.SetActiveInstantly();
+		}
 
 		GridManager.Instance.PlaceOnGrid(gridPos, obj, data);
 		ClearPreview();
