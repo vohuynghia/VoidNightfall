@@ -17,6 +17,7 @@ public class BuildingToolbarManager : MonoBehaviour
 	[Header("Repair Actions")]
 	[SerializeField] private GameObject _moveButtonObj;
 	[SerializeField] private GameObject _sellButtonObj;
+	[SerializeField] private GameObject _repairButtonObj;
 
 	[Header("Building Panel")]
 	[SerializeField] private GameObject _buildingPanel;
@@ -75,6 +76,8 @@ public class BuildingToolbarManager : MonoBehaviour
 			_moveButtonObj.GetComponent<Button>().onClick.AddListener(() => BuildingPlacer.Instance.EnterMoveMode());
 		if (_sellButtonObj != null)
 			_sellButtonObj.GetComponent<Button>().onClick.AddListener(() => BuildingPlacer.Instance.EnterSellMode());
+		if (_repairButtonObj != null)
+			_repairButtonObj.GetComponent<Button>().onClick.AddListener(OnClickRepair);
 
 		SelectCategory(BuildingCategory.MainBase, _tabMainBase);
 	}
@@ -129,6 +132,7 @@ public class BuildingToolbarManager : MonoBehaviour
 		bool isRepair = category == BuildingCategory.Repair;
 		if (_moveButtonObj != null) _moveButtonObj.SetActive(isRepair);
 		if (_sellButtonObj != null) _sellButtonObj.SetActive(isRepair);
+		if (_repairButtonObj != null) _repairButtonObj.SetActive(isRepair);
 
 		RefreshBuildingPanel();
 		BuildingPlacer.Instance.CancelPlacement();
@@ -139,7 +143,7 @@ public class BuildingToolbarManager : MonoBehaviour
 		foreach (Transform child in _buildingPanel.transform)
 			Destroy(child.gameObject);
 
-		if (_currentCategory == BuildingCategory.Repair) return; // Repair dùng 2 nút riêng, không tạo building button
+		if (_currentCategory == BuildingCategory.Repair) return;
 
 		foreach (var data in _allBuildings)
 		{
@@ -148,6 +152,15 @@ public class BuildingToolbarManager : MonoBehaviour
 			GameObject btnObj = Instantiate(_buildingButtonPrefab, _buildingPanel.transform);
 			var btn = btnObj.GetComponent<BuildingButton>();
 			if (btn) btn.Init(data);
+		}
+	}
+	public void OnClickRepair()
+	{
+		Deselect();
+
+		if (BuildingPlacer.Instance != null)
+		{
+			BuildingPlacer.Instance.EnterRepairMode();
 		}
 	}
 

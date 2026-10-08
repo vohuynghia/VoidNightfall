@@ -1,12 +1,15 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 using UnityEngine.EventSystems;
+using TMPro;
 
 public enum PlacementMode
 {
 	None,
 	Placing,
 	Moving,
-	Selling
+	Selling,
+	Repairing
 }
 
 public class BuildingPlacer : MonoBehaviour
@@ -20,8 +23,16 @@ public class BuildingPlacer : MonoBehaviour
 
 	[Header("Move / Sell")]
 	[SerializeField, Range(0f, 1f)] private float _sellRefundPercent = 0.5f;
-	[SerializeField] private Color _moveHighlightColor = new Color(0.2f, 0.6f, 1f); // xanh dương
+	[SerializeField] private Color _moveHighlightColor = new Color(0.2f, 0.6f, 1f);
 	[SerializeField] private Color _sellHighlightColor = Color.red;
+
+	[Header("Repair System")]
+	[SerializeField] private Color _repairHighlightColor = Color.green;
+	[SerializeField] private int _repairAreaSize = 5; // Kích thước lưới quét mặc định 5x5
+	[SerializeField] private GameObject _repairGridVisualPrefab; // Prefab hiển thị khung lưới xanh trên mặt đất
+	[SerializeField] private GameObject _repairDronePrefab;       // Drone Prefab
+	[SerializeField] private GameObject _worldHealthBarPrefab;    // Prefab WorldHealthBar
+	[SerializeField] private TextMeshProUGUI _repairCostText;     // Text hiển thị chi phí sửa chữa góc dưới trái
 
 	private static readonly int BaseColorID = Shader.PropertyToID("_BaseColor");
 	private static readonly int LegacyColorID = Shader.PropertyToID("_Color");
@@ -33,8 +44,13 @@ public class BuildingPlacer : MonoBehaviour
 
 	private PlacedBuildingInfo _movingBuildingInfo;
 	private bool _isHoldingMovedBuilding = false;
-
 	private PlacedBuildingInfo _hoveredBuilding;
+
+	// Dữ liệu quét sửa chữa
+	private GameObject _repairGridVisualInstance;
+	private List<PlacedBuildingInfo> _buildingsInRepairArea = new List<PlacedBuildingInfo>();
+	private Dictionary<PlacedBuildingInfo, GameObject> _tempHealthBars = new Dictionary<PlacedBuildingInfo, GameObject>();
+	private Dictionary<ResourceType, int> _totalRepairCost = new Dictionary<ResourceType, int>();
 
 	private void Awake()
 	{
@@ -50,10 +66,267 @@ public class BuildingPlacer : MonoBehaviour
 			case PlacementMode.Placing: UpdatePlacing(); break;
 			case PlacementMode.Moving: UpdateMoving(); break;
 			case PlacementMode.Selling: UpdateSelling(); break;
+			case PlacementMode.Repairing: UpdateRepairing(); break;
 		}
 	}
 
-	// ---------- PLACING ----------
+	// ---------- REPAIR MODE ----------
+
+	public void EnterRepairMode()
+	{
+		_mode = PlacementMode.Repairing;
+		ClearPreview();
+		ClearHoverHighlight();
+
+		if (_repairGridVisualPrefab != null && _repairGridVisualInstance == null)
+		{
+			_repairGridVisualInstance = Instantiate(_repairGridVisualPrefab);
+		}
+		UpdateRepairGridScale();
+		Debug.Log("[BuildingPlacer] Enter Repair Mode — Lăn chuột để thay đổi vùng quét");
+	}
+
+	void UpdateRepairing()
+	{
+		// 1. Lăn con trỏ chuột để thay đổi diện tích lưới (3, 5, 7, 9)
+		float scroll = Input.GetAxis("Mouse ScrollWheel");
+		if (scroll > 0.05f && _repairAreaSize < 9)
+		{
+			_repairAreaSize += 2;
+			UpdateRepairGridScale();
+		}
+		else if (scroll < -0.05f && _repairAreaSize > 3)
+		{
+			_repairAreaSize -= 2;
+			UpdateRepairGridScale();
+		}
+
+		// 2. Cập nhật vị trí khung lưới theo con trỏ chuột
+		Vector3Int centerGridPos = GetGridPositionFromMouse();
+		if (centerGridPos != Vector3Int.one * -999)
+		{
+			Vector3 worldPos = GridManager.Instance.GridToWorld(centerGridPos);
+			if (_repairGridVisualInstance != null)
+			{
+				_repairGridVisualInstance.SetActive(true);
+				_repairGridVisualInstance.transform.position = worldPos + Vector3.up * 0.05f;
+			}
+
+			// 3. Quét các công trình trong diện tích lưới
+			ScanBuildingsInRepairArea(centerGridPos);
+		}
+		else
+		{
+			if (_repairGridVisualInstance != null) _repairGridVisualInstance.SetActive(false);
+			ClearRepairAreaVisuals();
+		}
+
+		if (Input.GetMouseButtonDown(0) && !IsPointerOverUI())
+		{
+			TryExecuteRepair();
+		}
+
+		if (Input.GetMouseButtonDown(1) || Input.GetKeyDown(KeyCode.Escape))
+		{
+			ExitMode();
+		}
+	}
+
+	void UpdateRepairGridScale()
+	{
+		if (_repairGridVisualInstance != null)
+		{
+			_repairGridVisualInstance.transform.localScale = new Vector3(_repairAreaSize, _repairAreaSize, 1f);
+		}
+	}
+
+	void ScanBuildingsInRepairArea(Vector3Int center)
+	{
+		int radius = _repairAreaSize / 2;
+		HashSet<PlacedBuildingInfo> currentFound = new HashSet<PlacedBuildingInfo>();
+		_totalRepairCost.Clear();
+
+		for (int x = -radius; x <= radius; x++)
+		{
+			for (int z = -radius; z <= radius; z++)
+			{
+				Vector3Int checkPos = new Vector3Int(center.x + x, center.y, center.z + z);
+				var cell = GridManager.Instance.GetCell(checkPos);
+				if (cell != null && cell.PlacedObject != null)
+				{
+					if (cell.PlacedObject.TryGetComponent<PlacedBuildingInfo>(out var info))
+					{
+						var health = info.GetComponent<HealthSystem>();
+						// Chỉ tác động vào công trình mất máu hoặc đã bị sập
+						if (health != null && (health.CurrentHealth < health.MaxHealth || health.IsDead))
+						{
+							currentFound.Add(info);
+						}
+					}
+				}
+			}
+		}
+
+		// Dọn dẹp những công trình vừa ra khỏi vùng quét
+		List<PlacedBuildingInfo> toRemove = new List<PlacedBuildingInfo>();
+		foreach (var b in _buildingsInRepairArea)
+		{
+			if (!currentFound.Contains(b))
+			{
+				toRemove.Add(b);
+				RemoveHighlight(b);
+				if (_tempHealthBars.TryGetValue(b, out var bar))
+				{
+					Destroy(bar);
+					_tempHealthBars.Remove(b);
+				}
+			}
+		}
+		foreach (var r in toRemove) _buildingsInRepairArea.Remove(r);
+
+		// Thêm và cập nhật những công trình nằm trong vùng quét
+		foreach (var b in currentFound)
+		{
+			if (!_buildingsInRepairArea.Contains(b))
+			{
+				_buildingsInRepairArea.Add(b);
+				ApplyHighlight(b, _repairHighlightColor);
+
+				if (_worldHealthBarPrefab != null && !_tempHealthBars.ContainsKey(b))
+				{
+					var bar = Instantiate(_worldHealthBarPrefab, b.transform.position + Vector3.up * 2.5f, Quaternion.identity);
+					_tempHealthBars[b] = bar;
+				}
+			}
+
+			// Cập nhật giá trị thanh máu tạm
+			if (_tempHealthBars.TryGetValue(b, out var hpBar))
+			{
+				var slider = hpBar.GetComponentInChildren<UnityEngine.UI.Slider>();
+				var h = b.GetComponent<HealthSystem>();
+				if (slider != null && h != null)
+					slider.value = h.CurrentHealth / h.MaxHealth;
+			}
+
+			// Tính toán chi phí tài nguyên theo tỷ lệ máu mất
+			CalculateRepairCostForBuilding(b);
+		}
+
+		UpdateRepairCostDisplayUI();
+	}
+
+	void CalculateRepairCostForBuilding(PlacedBuildingInfo b)
+	{
+		var health = b.GetComponent<HealthSystem>();
+		if (health == null || b.Data == null) return;
+
+		float missingPercent = 1f - (health.CurrentHealth / health.MaxHealth);
+		if (missingPercent <= 0) return;
+
+		foreach (var kvp in b.Data.GetCosts())
+		{
+			// Tỷ lệ sửa: mất bao nhiêu % máu thì tốn bấy nhiêu % tài nguyên gốc (ít nhất 1 đơn vị)
+			int cost = Mathf.Max(1, Mathf.RoundToInt(kvp.Value * missingPercent * 0.6f));
+			if (_totalRepairCost.ContainsKey(kvp.Key))
+				_totalRepairCost[kvp.Key] += cost;
+			else
+				_totalRepairCost[kvp.Key] = cost;
+		}
+	}
+
+	void UpdateRepairCostDisplayUI()
+	{
+		if (_repairCostText == null) return;
+
+		if (_buildingsInRepairArea.Count == 0 || _totalRepairCost.Count == 0)
+		{
+			_repairCostText.text = "";
+			return;
+		}
+
+		string text = "<color=#00FF88>Chi phí sửa chữa:</color>\n";
+		foreach (var kvp in _totalRepairCost)
+		{
+			bool hasEnough = ResourceManager.Instance.HasEnough(kvp.Key, kvp.Value);
+			string colorCode = hasEnough ? "#FFFFFF" : "#FF4444";
+			text += $"<color={colorCode}>{kvp.Key}: {kvp.Value}</color> ";
+		}
+		_repairCostText.text = text;
+	}
+
+	void TryExecuteRepair()
+	{
+		if (_buildingsInRepairArea.Count == 0) return;
+
+		// Kiểm tra đủ tài nguyên không
+		foreach (var kvp in _totalRepairCost)
+		{
+			if (!ResourceManager.Instance.HasEnough(kvp.Key, kvp.Value))
+			{
+				Debug.Log("[BuildingPlacer] Không đủ tài nguyên để sửa chữa!");
+				return;
+			}
+		}
+
+		// Trừ tài nguyên
+		ResourceManager.Instance.SpendMultiple(_totalRepairCost);
+
+		// Tìm vị trí lưng người chơi để phóng Drone
+		GameObject player = GameObject.FindGameObjectWithTag("Player");
+		Vector3 droneSpawnPos = player != null ? player.transform.position + Vector3.up * 1.5f - player.transform.forward * 0.5f : transform.position;
+
+		// Phóng Drone đến từng công trình cần sửa
+		foreach (var b in _buildingsInRepairArea)
+		{
+			RemoveHighlight(b);
+
+			if (_repairDronePrefab != null)
+			{
+				GameObject droneObj = Instantiate(_repairDronePrefab, droneSpawnPos, Quaternion.identity);
+				var drone = droneObj.GetComponent<RepairDrone>();
+				drone.Launch(droneSpawnPos, b, _worldHealthBarPrefab);
+			}
+			else
+			{
+				// Fallback nếu chưa làm prefab Drone: hồi đầy máu ngay lập tức
+				var h = b.GetComponent<HealthSystem>();
+				if (h != null) h.Heal(h.MaxHealth);
+				if (b.TryGetComponent<BuildingLifecycle>(out var lc) && lc.State == BuildingState.Ruined)
+					lc.ReviveFromRuin();
+			}
+		}
+
+		// Xóa các thanh máu preview và reset danh sách
+		foreach (var pair in _tempHealthBars)
+		{
+			if (pair.Value != null) Destroy(pair.Value);
+		}
+		_tempHealthBars.Clear();
+		_buildingsInRepairArea.Clear();
+		_totalRepairCost.Clear();
+		UpdateRepairCostDisplayUI();
+
+		Debug.Log("[BuildingPlacer] Đã phóng Drone nano sửa chữa toàn bộ khu vực!");
+	}
+
+	void ClearRepairAreaVisuals()
+	{
+		foreach (var b in _buildingsInRepairArea)
+		{
+			RemoveHighlight(b);
+		}
+		_buildingsInRepairArea.Clear();
+
+		foreach (var pair in _tempHealthBars)
+		{
+			if (pair.Value != null) Destroy(pair.Value);
+		}
+		_tempHealthBars.Clear();
+		_totalRepairCost.Clear();
+		UpdateRepairCostDisplayUI();
+	}
+
+	// ---------- CÁC HÀM CŨ (PLACING, MOVING, SELLING) ----------
 
 	public void SelectBuilding(BuildingData data)
 	{
@@ -65,8 +338,8 @@ public class BuildingPlacer : MonoBehaviour
 	{
 		_mode = PlacementMode.Placing;
 		ClearHoverHighlight();
+		ClearRepairAreaVisuals();
 		SpawnPreview(_selectedBuilding);
-		Debug.Log($"[BuildingPlacer] Enter placing mode: {_selectedBuilding.BuildingName}");
 	}
 
 	void UpdatePlacing()
@@ -86,30 +359,18 @@ public class BuildingPlacer : MonoBehaviour
 		Vector3Int gridPos = GetGridPositionFromMouse();
 		if (gridPos == Vector3Int.one * -999) return;
 
-		if (!GridManager.Instance.CanPlace(gridPos))
-		{
-			Debug.Log("[BuildingPlacer] Cannot place: cell occupied");
-			return;
-		}
+		if (!GridManager.Instance.CanPlace(gridPos)) return;
 
-		if (!ResourceManager.Instance.SpendMultiple(_selectedBuilding.GetCosts()))
-		{
-			Debug.Log("[BuildingPlacer] Cannot place: not enough resources");
-			return;
-		}
+		if (!ResourceManager.Instance.SpendMultiple(_selectedBuilding.GetCosts())) return;
 
-		SpawnBuildingAt(gridPos, _selectedBuilding);
+		SpawnBuildingAt(gridPos, _selectedBuilding, true);
 
 		EventBus.Publish(new BuildingPlacedEvent
 		{
 			BuildingType = _selectedBuilding.BuildingName,
 			GridPosition = gridPos
 		});
-
-		Debug.Log($"[BuildingPlacer] Placed {_selectedBuilding.BuildingName} at {gridPos}");
 	}
-
-	// ---------- MOVING ----------
 
 	public void EnterMoveMode()
 	{
@@ -118,7 +379,7 @@ public class BuildingPlacer : MonoBehaviour
 		_isHoldingMovedBuilding = false;
 		ClearPreview();
 		ClearHoverHighlight();
-		Debug.Log("[BuildingPlacer] Enter move mode — hover a building then click to pick it up");
+		ClearRepairAreaVisuals();
 	}
 
 	void UpdateMoving()
@@ -147,24 +408,12 @@ public class BuildingPlacer : MonoBehaviour
 		var info = RaycastForBuilding();
 		if (info == null) return;
 
-		// Kiểm tra nếu công trình đang xây dựng -> Chặn không cho di chuyển
-		if (info.TryGetComponent<BuildingLifecycle>(out var lifecycle))
-		{
-			if (lifecycle.State == BuildingState.Constructing)
-			{
-				Debug.Log($"[BuildingPlacer] Không thể di chuyển {info.gameObject.name} khi đang xây dựng!");
-				return;
-			}
-		}
-
-		if (info.Data == null)
-		{
-			Debug.LogWarning($"[BuildingPlacer] Công trình {info.gameObject.name} thiếu BuildingData, không thể di chuyển!");
+		if (info.TryGetComponent<BuildingLifecycle>(out var lifecycle) && lifecycle.State == BuildingState.Constructing)
 			return;
-		}
+
+		if (info.Data == null) return;
 
 		ClearHoverHighlight();
-
 		_movingBuildingInfo = info;
 		_selectedBuilding = info.Data;
 		_isHoldingMovedBuilding = true;
@@ -173,8 +422,6 @@ public class BuildingPlacer : MonoBehaviour
 		Destroy(info.gameObject);
 
 		SpawnPreview(_selectedBuilding);
-
-		Debug.Log($"[BuildingPlacer] Picked up {_selectedBuilding.BuildingName} to move");
 	}
 
 	void TryDropMovedBuilding()
@@ -182,14 +429,9 @@ public class BuildingPlacer : MonoBehaviour
 		Vector3Int gridPos = GetGridPositionFromMouse();
 		if (gridPos == Vector3Int.one * -999) return;
 
-		if (!GridManager.Instance.CanPlace(gridPos))
-		{
-			Debug.Log("[BuildingPlacer] Cannot move here: cell occupied");
-			return;
-		}
+		if (!GridManager.Instance.CanPlace(gridPos)) return;
 
 		SpawnBuildingAt(gridPos, _selectedBuilding, false);
-		Debug.Log($"[BuildingPlacer] Moved {_selectedBuilding.BuildingName} to {gridPos}");
 
 		_movingBuildingInfo = null;
 		_isHoldingMovedBuilding = false;
@@ -197,14 +439,12 @@ public class BuildingPlacer : MonoBehaviour
 		ClearPreview();
 	}
 
-	// ---------- SELLING ----------
-
 	public void EnterSellMode()
 	{
 		_mode = PlacementMode.Selling;
 		ClearPreview();
 		ClearHoverHighlight();
-		Debug.Log("[BuildingPlacer] Enter sell mode — hover a building then click to sell it");
+		ClearRepairAreaVisuals();
 	}
 
 	void UpdateSelling()
@@ -224,19 +464,11 @@ public class BuildingPlacer : MonoBehaviour
 		var info = RaycastForBuilding();
 		if (info == null) return;
 
-		// Kiểm tra nếu công trình đang xây dựng -> Chặn không cho bán
-		if (info.TryGetComponent<BuildingLifecycle>(out var lifecycle))
-		{
-			if (lifecycle.State == BuildingState.Constructing)
-			{
-				Debug.Log($"[BuildingPlacer] Không thể bán {info.gameObject.name} khi đang xây dựng!");
-				return;
-			}
-		}
+		if (info.TryGetComponent<BuildingLifecycle>(out var lifecycle) && lifecycle.State == BuildingState.Constructing)
+			return;
 
 		if (info.Data == null)
 		{
-			Debug.LogWarning($"[BuildingPlacer] Công trình {info.gameObject.name} thiếu BuildingData, xóa bỏ không hoàn tiền!");
 			GridManager.Instance.RemoveFromGrid(info.GridPosition);
 			Destroy(info.gameObject);
 			ClearHoverHighlight();
@@ -247,7 +479,6 @@ public class BuildingPlacer : MonoBehaviour
 		var gridPos = info.GridPosition;
 
 		ClearHoverHighlight();
-
 		GridManager.Instance.RemoveFromGrid(gridPos);
 		Destroy(info.gameObject);
 
@@ -257,23 +488,16 @@ public class BuildingPlacer : MonoBehaviour
 			if (refund > 0)
 				ResourceManager.Instance.Add(kvp.Key, refund);
 		}
-
-		Debug.Log($"[BuildingPlacer] Sold {data.BuildingName} at {gridPos}, refunded {_sellRefundPercent * 100}%");
 	}
-
-	// ---------- Hover Highlight ----------
 
 	void UpdateHoverHighlight(Color highlightColor)
 	{
 		var info = RaycastForBuilding();
 
-		if (info != null && info.TryGetComponent<BuildingLifecycle>(out var lifecycle))
+		if (info != null && info.TryGetComponent<BuildingLifecycle>(out var lifecycle) && lifecycle.State == BuildingState.Constructing)
 		{
-			if (lifecycle.State == BuildingState.Constructing)
-			{
-				ClearHoverHighlight();
-				return;
-			}
+			ClearHoverHighlight();
+			return;
 		}
 
 		if (info != _hoveredBuilding)
@@ -307,21 +531,23 @@ public class BuildingPlacer : MonoBehaviour
 		}
 	}
 
-	void ClearHoverHighlight()
+	void RemoveHighlight(PlacedBuildingInfo info)
 	{
-		if (_hoveredBuilding == null) return;
-
-		foreach (var renderer in _hoveredBuilding.GetComponentsInChildren<Renderer>())
+		if (info == null) return;
+		foreach (var renderer in info.GetComponentsInChildren<Renderer>())
 		{
 			int materialCount = renderer.sharedMaterials.Length;
 			for (int i = 0; i < materialCount; i++)
 				renderer.SetPropertyBlock(null, i);
 		}
-
-		_hoveredBuilding = null;
 	}
 
-	// ---------- Dùng chung ----------
+	void ClearHoverHighlight()
+	{
+		if (_hoveredBuilding == null) return;
+		RemoveHighlight(_hoveredBuilding);
+		_hoveredBuilding = null;
+	}
 
 	void SpawnBuildingAt(Vector3Int gridPos, BuildingData data, bool isNewConstruction = true)
 	{
@@ -329,25 +555,16 @@ public class BuildingPlacer : MonoBehaviour
 		GameObject obj = Instantiate(data.Prefab, worldPos, Quaternion.identity);
 
 		if (!obj.TryGetComponent<PlacedBuildingInfo>(out var info))
-		{
 			info = obj.AddComponent<PlacedBuildingInfo>();
-		}
 		info.Init(data, gridPos);
 
 		if (!obj.TryGetComponent<BuildingLifecycle>(out var lifecycle))
-		{
 			lifecycle = obj.AddComponent<BuildingLifecycle>();
-		}
 
-		// Nếu là xây mới thì mới đếm ngược, nếu là Move thì kích hoạt ngay lập tức
 		if (isNewConstruction)
-		{
 			lifecycle.InitLifecycle(data);
-		}
 		else
-		{
 			lifecycle.SetActiveInstantly();
-		}
 
 		GridManager.Instance.PlaceOnGrid(gridPos, obj, data);
 		ClearPreview();
@@ -366,12 +583,9 @@ public class BuildingPlacer : MonoBehaviour
 		if (_previewObject != null) Destroy(_previewObject);
 		_previewObject = Instantiate(data.Prefab);
 
-		foreach (var col in _previewObject.GetComponentsInChildren<Collider>())
-			col.enabled = false;
-		foreach (var mono in _previewObject.GetComponentsInChildren<MonoBehaviour>())
-			mono.enabled = false;
-		foreach (var rb in _previewObject.GetComponentsInChildren<Rigidbody>())
-			rb.isKinematic = true;
+		foreach (var col in _previewObject.GetComponentsInChildren<Collider>()) col.enabled = false;
+		foreach (var mono in _previewObject.GetComponentsInChildren<MonoBehaviour>()) mono.enabled = false;
+		foreach (var rb in _previewObject.GetComponentsInChildren<Rigidbody>()) rb.isKinematic = true;
 	}
 
 	void ClearPreview()
@@ -404,8 +618,11 @@ public class BuildingPlacer : MonoBehaviour
 		_isHoldingMovedBuilding = false;
 		ClearPreview();
 		ClearHoverHighlight();
+		ClearRepairAreaVisuals();
 
-		Debug.Log("[BuildingPlacer] Exit mode");
+		if (_repairGridVisualInstance != null)
+			_repairGridVisualInstance.SetActive(false);
+
 		if (BuildingToolbarManager.Instance != null)
 			BuildingToolbarManager.Instance.Deselect();
 	}
@@ -438,15 +655,14 @@ public class BuildingPlacer : MonoBehaviour
 		foreach (var renderer in _previewObject.GetComponentsInChildren<Renderer>())
 			renderer.material = material;
 	}
-	// Ham kiem tra tai nguyen khi xay cong trinh
+
 	bool HasEnoughResourcesForSelected()
 	{
 		if (_selectedBuilding == null) return false;
-
 		foreach (var kvp in _selectedBuilding.GetCosts())
 		{
 			if (!ResourceManager.Instance.HasEnough(kvp.Key, kvp.Value))
-				return false; // Thiếu bất kỳ tài nguyên nào thì trả về false ngay
+				return false;
 		}
 		return true;
 	}

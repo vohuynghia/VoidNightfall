@@ -23,6 +23,7 @@ MonoBehaviour:
   EnergyCost: 0
   Requirement: None
   Health: 100
+  BuildTime: 20
   Damage: 40
   FireRate: 0.5
   Range: 25

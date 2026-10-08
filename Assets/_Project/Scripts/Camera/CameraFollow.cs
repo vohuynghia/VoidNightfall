@@ -52,6 +52,9 @@ public class CameraFollow : MonoBehaviour
 
 	void HandleZoomInput()
 	{
+		// Nếu bảng Toolbar xây dựng đang mở -> Khóa zoom camera hoàn toàn
+		if (BuildingToolbarManager.Instance != null && BuildingToolbarManager.Instance.IsOpen)
+			return;
 		float scroll = Input.GetAxis("Mouse ScrollWheel");
 		if (Mathf.Abs(scroll) > 0.01f)
 		{
