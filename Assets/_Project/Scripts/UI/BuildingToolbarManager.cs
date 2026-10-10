@@ -9,7 +9,7 @@ public class BuildingToolbarManager : MonoBehaviour
 
 	[Header("Categories")]
 	[SerializeField] private Button _tabMainBase;
-	[SerializeField] private Button _tabAttack;
+	[SerializeField] private Button _tabEnergy;
 	[SerializeField] private Button _tabDefense;
 	[SerializeField] private Button _tabResource;
 	[SerializeField] private Button _tabRepair;
@@ -36,7 +36,7 @@ public class BuildingToolbarManager : MonoBehaviour
 	[SerializeField] private float _slideDuration = 0.25f;
 	[SerializeField] private AnimationCurve _slideCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
 
-	private BuildingCategory _currentCategory = BuildingCategory.Attack;
+	private BuildingCategory _currentCategory = BuildingCategory.Defense;
 	private Button _selectedTab;
 	private CanvasGroup _canvasGroup;
 	private Vector2 _shownPos;
@@ -67,7 +67,7 @@ public class BuildingToolbarManager : MonoBehaviour
 	private void Start()
 	{
 		_tabMainBase.onClick.AddListener(() => SelectCategory(BuildingCategory.MainBase, _tabMainBase));
-		_tabAttack.onClick.AddListener(() => SelectCategory(BuildingCategory.Attack, _tabAttack));
+		_tabEnergy.onClick.AddListener(() => SelectCategory(BuildingCategory.Energy, _tabEnergy));
 		_tabDefense.onClick.AddListener(() => SelectCategory(BuildingCategory.Defense, _tabDefense));
 		_tabResource.onClick.AddListener(() => SelectCategory(BuildingCategory.Resource, _tabResource));
 		_tabRepair.onClick.AddListener(() => SelectCategory(BuildingCategory.Repair, _tabRepair));

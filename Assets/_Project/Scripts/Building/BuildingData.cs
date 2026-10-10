@@ -4,9 +4,9 @@ using UnityEngine;
 public enum BuildingCategory
 {
     MainBase,
-    Attack,
-    Defense,
-    Resource,
+    Energy,
+	Defense,
+	Resource,
     Repair
 }
 
