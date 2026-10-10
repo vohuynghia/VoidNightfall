@@ -42,7 +42,18 @@ public class BuildingData : ScriptableObject
     [Header("Prefab")]
     public GameObject Prefab;
 
-    public Dictionary<ResourceType, int> GetCosts()
+	[Header("Energy & Power Grid")]
+	[Tooltip("Lượng điện công trình này tạo ra mỗi giây (ví dụ: Nhà chính, Máy phát điện)")]
+	[SerializeField] private int _energyProduction = 0;
+
+	[Tooltip("Bán kính truyền tải/phủ sóng điện của công trình này (0 nếu không phát điện/không phải cột điện)")]
+	[SerializeField] private float _powerRadius = 0f;
+
+	// Public properties để truy xuất
+	public int EnergyProduction => _energyProduction;
+	public float PowerRadius => _powerRadius;
+
+	public Dictionary<ResourceType, int> GetCosts()
     {
         var costs = new Dictionary<ResourceType, int>();
         if (CarboniumCost > 0) costs[ResourceType.Carbonium] = CarboniumCost;

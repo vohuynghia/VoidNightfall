@@ -14,17 +14,20 @@ public enum BuildingState
 public class BuildingLifecycle : MonoBehaviour
 {
 	[Header("Visual Settings")]
-	[SerializeField] private Material _hologramMaterial; 
-	[SerializeField] private Color _ruinedColor = new Color(0.2f, 0.2f, 0.2f, 1f); 
-	[SerializeField] private GameObject _ruinedFireVfxPrefab; // Prefab lửa khói (nếu có, để trống nếu chưa có)
+	[SerializeField] private Material _hologramMaterial;
+	[SerializeField] private Color _ruinedColor = new Color(0.2f, 0.2f, 0.2f, 1f);
+	[SerializeField] private GameObject _ruinedFireVfxPrefab;
+
+	[Header("Power Settings")]
+	[SerializeField] private GameObject _noPowerIcon; // Icon tia sét đỏ hiển thị khi mất điện (nếu có)
 
 	public BuildingState State { get; private set; } = BuildingState.Constructing;
-	public float ConstructionProgress { get; private set; } 
+	public float ConstructionProgress { get; private set; }
+	public bool IsPowered { get; private set; } = true;
 
 	private PlacedBuildingInfo _buildingInfo;
 	private HealthSystem _healthSystem;
 
-	// Quản lý Renderers và Material gốc
 	private struct RendererData
 	{
 		public Renderer renderer;
@@ -59,7 +62,6 @@ public class BuildingLifecycle : MonoBehaviour
 
 	private void Start()
 	{
-		// KHÔNG gọi StartConstruction() để tránh bị null Data
 		if (_healthSystem != null)
 		{
 			_healthSystem.OnDeath.AddListener(OnBuildingDestroyed);
@@ -72,24 +74,36 @@ public class BuildingLifecycle : MonoBehaviour
 		{
 			_healthSystem.OnDeath.RemoveListener(OnBuildingDestroyed);
 		}
+
+		// Rút khỏi mạng lưới điện khi bị bán hoặc xóa
+		if (PowerGridManager.Instance != null)
+		{
+			PowerGridManager.Instance.UnregisterBuilding(this);
+		}
 	}
+
+	/// <summary>
 	/// Dùng khi di chuyển công trình hoặc load game: Bỏ qua đếm ngược và hoạt động luôn.
+	/// </summary>
 	public void SetActiveInstantly()
 	{
 		CacheRenderers();
 		State = BuildingState.Active;
 		RestoreOriginalVisual();
 		SetFunctionalityEnabled(true);
+
+		if (PowerGridManager.Instance != null)
+			PowerGridManager.Instance.RegisterBuilding(this);
 	}
 
 	// ================== GIAI ĐOẠN 1: XÂY DỰNG ==================
 
-	/// Hàm khởi tạo tiến trình xây dựng được gọi trực tiếp từ BuildingPlacer
 	public void InitLifecycle(BuildingData data)
 	{
 		CacheRenderers();
 		StartConstruction(data.BuildTime);
 	}
+
 	public void StartConstruction(float duration)
 	{
 		State = BuildingState.Constructing;
@@ -130,6 +144,10 @@ public class BuildingLifecycle : MonoBehaviour
 		if (_worldCountdownText != null)
 			Destroy(_worldCountdownText.gameObject);
 
+		// Đăng ký vào mạng lưới điện khi bắt đầu hoạt động
+		if (PowerGridManager.Instance != null)
+			PowerGridManager.Instance.RegisterBuilding(this);
+
 		Debug.Log($"[BuildingLifecycle] {gameObject.name} hoàn tất xây dựng!");
 	}
 
@@ -141,18 +159,18 @@ public class BuildingLifecycle : MonoBehaviour
 		SetFunctionalityEnabled(false);
 		ApplyRuinedVisual();
 
-		// Sinh lửa khói
 		if (_ruinedFireVfxPrefab != null && _activeFireVfx == null)
 		{
 			_activeFireVfx = Instantiate(_ruinedFireVfxPrefab, transform.position, Quaternion.identity, transform);
 		}
 
+		// Rút khỏi mạng lưới điện khi công trình sập
+		if (PowerGridManager.Instance != null)
+			PowerGridManager.Instance.UnregisterBuilding(this);
+
 		Debug.Log($"[BuildingLifecycle] {gameObject.name} đã sập! Chuyển sang trạng thái phế tích.");
 	}
 
-	/// <summary>
-	/// Gọi hàm này từ tia sửa chữa (Repair Beam) của Player khi công trình đang sập
-	/// </summary>
 	public void ReviveFromRuin()
 	{
 		if (State != BuildingState.Ruined) return;
@@ -167,23 +185,36 @@ public class BuildingLifecycle : MonoBehaviour
 			_activeFireVfx = null;
 		}
 
+		// Đăng ký lại vào mạng lưới điện khi hồi sinh
+		if (PowerGridManager.Instance != null)
+			PowerGridManager.Instance.RegisterBuilding(this);
+
 		Debug.Log($"[BuildingLifecycle] {gameObject.name} đã được phục hồi thành công!");
 	}
 
-	// ================== CÁC TIỆN ÍCH BẬT / TẮT CHỨC NĂNG ==================
+	// ================== GIAI ĐOẠN 3: NĂNG LƯỢNG / BẬT TẮT ==================
+
+	/// <summary>
+	/// Được gọi bởi PowerGridManager khi trạng thái cấp điện thay đổi
+	/// </summary>
+	public void SetPowered(bool powered)
+	{
+		IsPowered = powered;
+
+		if (_noPowerIcon != null)
+			_noPowerIcon.SetActive(!powered && State == BuildingState.Active);
+
+		SetFunctionalityEnabled(powered && State == BuildingState.Active);
+	}
 
 	private void SetFunctionalityEnabled(bool isEnabled)
 	{
-		// 1. Tắt/Bật Turret bắn đạn
 		if (TryGetComponent<Turret>(out var turret))
 			turret.enabled = isEnabled;
 
-		// 2. Tắt/Bật bộ hút tài nguyên
 		if (TryGetComponent<ResourceCollector>(out var collector))
 			collector.enabled = isEnabled;
 
-		// 3. Không cho quái target nếu đang trong trạng thái phế tích sập hoàn toàn
-		// (Nếu muốn quái vẫn có thể đánh lúc đang xây dựng thì chỉ tắt khi Ruined)
 		if (TryGetComponent<Collider>(out var col))
 			col.enabled = (State != BuildingState.Ruined);
 	}
@@ -230,14 +261,13 @@ public class BuildingLifecycle : MonoBehaviour
 	{
 		GameObject textObj = new GameObject("Build_Countdown_Text");
 		textObj.transform.SetParent(transform);
-		textObj.transform.localPosition = Vector3.up * 2f; // Hiển thị phía trên công trình
+		textObj.transform.localPosition = Vector3.up * 2f;
 
 		_worldCountdownText = textObj.AddComponent<TextMeshPro>();
 		_worldCountdownText.alignment = TextAlignmentOptions.Center;
 		_worldCountdownText.fontSize = 4;
 		_worldCountdownText.color = Color.cyan;
 
-		// Luôn xoay chữ hướng về Camera để người chơi dễ đọc
 		textObj.AddComponent<FaceCamera>();
 	}
 }
